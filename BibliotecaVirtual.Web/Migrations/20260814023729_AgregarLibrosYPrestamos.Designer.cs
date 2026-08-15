@@ -4,6 +4,7 @@ using BibliotecaVirtual.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BibliotecaVirtual.Web.Migrations
 {
     [DbContext(typeof(BibliotecaContext))]
-    partial class BibliotecaContextModelSnapshot : ModelSnapshot
+    [Migration("20260814023729_AgregarLibrosYPrestamos")]
+    partial class AgregarLibrosYPrestamos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -55,53 +58,6 @@ namespace BibliotecaVirtual.Web.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Libros");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Autor = "Gabriel García Márquez",
-                            Categoria = "Novela",
-                            Disponible = true,
-                            ISBN = "978-0307474728",
-                            Titulo = "Cien años de soledad"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Autor = "Antoine de Saint-Exupéry",
-                            Categoria = "Infantil",
-                            Disponible = true,
-                            ISBN = "978-0156013987",
-                            Titulo = "El principito"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Autor = "Robert C. Martin",
-                            Categoria = "Tecnología",
-                            Disponible = true,
-                            ISBN = "978-0132350884",
-                            Titulo = "Clean Code"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Autor = "Miguel de Cervantes",
-                            Categoria = "Clásico",
-                            Disponible = true,
-                            ISBN = "978-8424115463",
-                            Titulo = "Don Quijote de la Mancha"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Autor = "Bradley L. Jones",
-                            Categoria = "Tecnología",
-                            Disponible = true,
-                            ISBN = "978-0672320712",
-                            Titulo = "Aprende C# en 21 Días"
-                        });
                 });
 
             modelBuilder.Entity("BibliotecaVirtual.Web.Models.Prestamo", b =>

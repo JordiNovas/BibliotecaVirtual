@@ -1,0 +1,50 @@
+@model IEnumerable<BibliotecaVirtual.Web.Models.Prestamo>
+
+@{
+    ViewData["Title"] = "Mis Préstamos";
+}
+
+<div class="container mt-4">
+    <h2>📖 Mis Préstamos Activos</h2>
+
+    @if (TempData["Exito"] != null)
+    {
+        <div class="alert alert-success">@TempData["Exito"]</div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info mt-3">
+            No tienes libros prestados actualmente. <a asp-action="Index">Explorar el catálogo</a>
+        </div>
+    }
+    else
+    {
+        <table class="table table-hover mt-3">
+            <thead class="table-light">
+                <tr>
+                    <th>Libro</th>
+                    <th>Fecha de Préstamo</th>
+                    <th>Estado</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td><strong>@item.Libro?.Titulo</strong></td>
+                        <td>@item.FechaPrestamo.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td><span class="badge bg-warning text-dark">@item.Estado</span></td>
+                        <td>
+                            <form asp-action="Devolver" method="post">
+                                <input type="hidden" name="prestamoId" value="@item.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Devolver Libro</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
