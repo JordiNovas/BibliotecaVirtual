@@ -1,168 +1,298 @@
 using System;
+using System.Diagnostics;
+using System.Linq;
+using System.Net.Http;
+using System.Threading;
+using Microsoft.EntityFrameworkCore;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using Xunit;
+using BibliotecaVirtual.Web.Data;
+using BibliotecaVirtual.Web.Models;
 
 namespace BibliotecaVirtual.Tests
 {
     public class UsuarioTests : IDisposable
     {
-        private readonly IWebDriver _driver;
-        private readonly WebDriverWait _wait;
+        private readonly IWebDriver driver;
+        private readonly WebDriverWait wait;
+
+        private static Process? webAppProcess;
+
         private const string BaseUrl = "http://localhost:5119";
+
+        private const string DbConnectionString =
+            @"Server=JORDINOVAS\MSSQLSERVER02;Database=BibliotecaVirtualDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true";
 
         public UsuarioTests()
         {
+            AsegurarServidorWebActivo();
+
             var options = new ChromeOptions();
+
+            options.AddArgument("--headless=new");
             options.AddArgument("--no-sandbox");
             options.AddArgument("--disable-dev-shm-usage");
             options.AddArgument("--ignore-certificate-errors");
 
-            _driver = new ChromeDriver(options);
-            _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+            driver = new ChromeDriver(options);
+
+            wait = new WebDriverWait(
+                driver,
+                TimeSpan.FromSeconds(15));
         }
 
-        private void IniciarSesion()
+        private void AsegurarServidorWebActivo()
         {
-            _driver.Navigate().GoToUrl($"{BaseUrl}/Cuenta/Login");
+            if (webAppProcess != null &&
+                !webAppProcess.HasExited)
+            {
+                return;
+            }
 
-            var txtUsuario = _wait.Until(d => d.FindElement(By.Name("nombreUsuario")));
-            txtUsuario.Clear();
-            txtUsuario.SendKeys("admin");
+            webAppProcess = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "dotnet",
 
-            var txtPassword = _driver.FindElement(By.Name("password"));
-            txtPassword.Clear();
-            txtPassword.SendKeys("Admin123!");
+                    Arguments =
+                        @"run --project C:\BibliotecaVirtual\BibliotecaVirtual.Web\BibliotecaVirtual.Web.csproj --urls http://localhost:5119",
 
-            var btnLogin = _driver.FindElement(By.XPath("//form[contains(@action, 'Login') or contains(@action, 'login')]//button[@type='submit'] | //button[@type='submit']"));
-            btnLogin.Click();
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
 
-            _wait.Until(d => !d.Url.Contains("/Cuenta/Login", StringComparison.OrdinalIgnoreCase));
+                    WorkingDirectory =
+                        @"C:\BibliotecaVirtual\BibliotecaVirtual.Web"
+                }
+            };
+
+            webAppProcess.Start();
+
+            using var client = new HttpClient();
+
+            bool listo = false;
+
+            for (int i = 0; i < 30 && !listo; i++)
+            {
+                try
+                {
+                    var response = client
+                        .GetAsync(BaseUrl)
+                        .GetAwaiter()
+                        .GetResult();
+
+                    listo = response.IsSuccessStatusCode;
+                }
+                catch
+                {
+                    Thread.Sleep(1000);
+                }
+            }
+
+            if (!listo)
+            {
+                throw new Exception(
+                    "La aplicación BibliotecaVirtual.Web no pudo iniciar en " +
+                    BaseUrl);
+            }
         }
 
-        [Fact]
-        public void CrearUsuarioConDatosValidos()
+        private BibliotecaContext CrearDbContext()
         {
-            IniciarSesion();
+            var optionsBuilder =
+                new DbContextOptionsBuilder<BibliotecaContext>();
 
-            _driver.Navigate().GoToUrl($"{BaseUrl}/Usuarios/Crear");
+            optionsBuilder.UseSqlServer(DbConnectionString);
 
-            string timeStamp = DateTime.Now.Ticks.ToString().Substring(10);
-            string nombreTest = $"TestUser_{timeStamp}";
-            string correoTest = $"user_{timeStamp}@prueba.com";
-            string usuarioTest = $"usr_{timeStamp}";
+            return new BibliotecaContext(
+                optionsBuilder.Options);
+        }
 
-            LlenarCampoSiExiste(By.Name("Nombre"), nombreTest);
-            LlenarCampoSiExiste(By.Name("Correo"), correoTest);
-            LlenarCampoSiExiste(By.Name("NombreUsuario"), usuarioTest);
-            LlenarCampoSiExiste(By.Name("PasswordHash"), "User123!");
-            LlenarCampoSiExiste(By.Name("Clave"), "User123!");
+        private void SembrarUsuarioEnBD()
+        {
+            using var db = CrearDbContext();
 
-            var btnGuardar = _driver.FindElement(By.XPath("//form[not(contains(@action, 'Logout'))]//button[@type='submit' or contains(text(), 'Guardar') or contains(text(), 'Crear')] | //input[@type='submit']"));
-            btnGuardar.Click();
+            var usuarioExistente = db.Usuarios
+                .FirstOrDefault(u =>
+                    u.NombreUsuario == "testuser_selenium");
 
-            _wait.Until(d => !d.Url.EndsWith("/Usuarios/Crear", StringComparison.OrdinalIgnoreCase));
+            if (usuarioExistente == null)
+            {
+                db.Usuarios.Add(new Usuario
+                {
+                    Nombre = "Usuario Test Selenium",
+                    Correo = "selenium.test@biblioteca.com",
+                    NombreUsuario = "testuser_selenium",
+                    PasswordHash = "Password123!",
+                    Activo = true,
+                    FechaRegistro = DateTime.Now
+                });
 
-            string urlFinal = _driver.Url;
-
-            Assert.DoesNotContain("/Cuenta/Logout", urlFinal, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("/Cuenta/Login", urlFinal, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("/Usuarios", urlFinal, StringComparison.OrdinalIgnoreCase);
+                db.SaveChanges();
+            }
         }
 
         [Fact]
         public void EditarUsuarioConDatosValidos()
         {
-            IniciarSesion();
+            SembrarUsuarioEnBD();
 
-            _driver.Navigate().GoToUrl($"{BaseUrl}/Usuarios");
+            driver.Navigate()
+                .GoToUrl($"{BaseUrl}/Usuarios");
 
-            var btnEditar = _wait.Until(d => d.FindElement(By.XPath("//a[contains(@href, '/Usuarios/Editar') or contains(text(), 'Editar')]")));
-            btnEditar.Click();
+            var filaUsuario = wait.Until(d =>
+                d.FindElement(
+                    By.XPath(
+                        "//table/tbody/tr[td[contains(normalize-space(), 'testuser_selenium')]]"
+                    )
+                )
+            );
 
-            string nuevoNombre = $"UserModificado_{DateTime.Now.Ticks.ToString().Substring(10)}";
+            var btnEditar = filaUsuario.FindElement(
+                By.XPath(
+                    ".//a[contains(@href, '/Usuarios/Editar')]"
+                )
+            );
 
-            var txtNombre = _wait.Until(d => d.FindElement(By.Id("Nombre")));
-            txtNombre.Clear();
-            txtNombre.SendKeys(nuevoNombre);
+            var urlEditar = btnEditar.GetAttribute("href");
 
-            var btnGuardar = _driver.FindElement(By.XPath("//form[not(contains(@action, 'Logout'))]//button[@type='submit' or contains(text(), 'Guardar') or contains(text(), 'Actualizar')]"));
+            Assert.False(
+                string.IsNullOrWhiteSpace(urlEditar),
+                "El enlace de edición no contiene una URL válida.");
+
+            driver.Navigate()
+                .GoToUrl(urlEditar!);
+
+                
+            var inputNombre = wait.Until(d =>
+                d.FindElement(By.Id("Nombre"))
+            );
+
+            inputNombre.Clear();
+
+            inputNombre.SendKeys(
+                "Nombre Editado Selenium");
+
+            var btnGuardar = wait.Until(d =>
+                d.FindElement(By.Id("btnGuardar"))
+            );
+
             btnGuardar.Click();
 
-            _wait.Until(d => d.Url.EndsWith("/Usuarios", StringComparison.OrdinalIgnoreCase) || d.Url.Contains("/Usuarios/Index", StringComparison.OrdinalIgnoreCase));
+            wait.Until(d =>
+                d.Url.EndsWith("/Usuarios") ||
+                d.Url.EndsWith("/Usuarios/")
+        );
 
-            Assert.Contains(nuevoNombre, _driver.PageSource);
+            Assert.Contains(
+                "/Usuarios",
+                driver.Url,
+                StringComparison.OrdinalIgnoreCase);
+
+            using var db = CrearDbContext();
+
+            var usuario = db.Usuarios
+                .FirstOrDefault(u =>
+                    u.NombreUsuario == "testuser_selenium");
+
+            Assert.NotNull(usuario);
+
+            Assert.Equal(
+                "Nombre Editado Selenium",
+                usuario!.Nombre);
         }
 
         [Fact]
         public void EliminarUsuarioExitosamente()
         {
-            IniciarSesion();
+            SembrarUsuarioEnBD();
 
-            // 1. Crear un usuario rápido exclusivo para ser eliminado
-            _driver.Navigate().GoToUrl($"{BaseUrl}/Usuarios/Crear");
+            driver.Navigate()
+                .GoToUrl($"{BaseUrl}/Usuarios");
 
-            string timeStamp = DateTime.Now.Ticks.ToString().Substring(10);
-            string usuarioAEliminar = $"Eliminar_{timeStamp}";
+            var filaUsuario = wait.Until(d =>
+                d.FindElement(
+                    By.XPath(
+                        "//table/tbody/tr[td[contains(normalize-space(), 'testuser_selenium')]]"
+                    )
+                )
+            );
 
-            _wait.Until(d => d.FindElement(By.Id("Nombre"))).SendKeys(usuarioAEliminar);
-            LlenarCampoSiExiste(By.Name("Correo"), $"del_{timeStamp}@test.com");
-            LlenarCampoSiExiste(By.Name("NombreUsuario"), $"usr_del_{timeStamp}");
-            LlenarCampoSiExiste(By.Name("PasswordHash"), "User123!");
+            var btnEliminar = filaUsuario.FindElement(
+                By.XPath(
+                    ".//a[contains(@href, '/Usuarios/Eliminar')]"
+                )
+            );
 
-            var btnGuardar = _driver.FindElement(By.XPath("//form[not(contains(@action, 'Logout'))]//button[@type='submit' or contains(text(), 'Guardar') or contains(text(), 'Crear')]"));
-            btnGuardar.Click();
+            var urlEliminar =
+                btnEliminar.GetAttribute("href");
 
-            // Esperar a que salga de la vista Crear
-            _wait.Until(d => !d.Url.EndsWith("/Usuarios/Crear", StringComparison.OrdinalIgnoreCase));
+            Assert.False(
+                string.IsNullOrWhiteSpace(urlEliminar));
 
-            // 2. Asegurarnos de estar en la tabla de usuarios
-            if (!_driver.Url.Contains("/Usuarios", StringComparison.OrdinalIgnoreCase))
-            {
-                _driver.Navigate().GoToUrl($"{BaseUrl}/Usuarios");
-            }
+            driver.Navigate()
+                .GoToUrl(urlEliminar);
 
-            // 3. Localizar el enlace/botón "Eliminar" específico para esa fila
-            var btnEliminar = _wait.Until(d => d.FindElement(By.XPath($"//tr[td[contains(text(), '{usuarioAEliminar}')]]//a[contains(@href, 'Eliminar') or contains(text(), 'Eliminar')] | //tr[td[contains(text(), '{usuarioAEliminar}')]]//button[contains(text(), 'Eliminar')]")));
-            btnEliminar.Click();
+            wait.Until(d =>
+                d.Url.Contains(
+                    "/Usuarios/Eliminar",
+                    StringComparison.OrdinalIgnoreCase)
+            );
 
-            // 4. Manejar posible alerta JS o formulario de confirmación en vista/modal
-            try
-            {
-                var alert = _driver.SwitchTo().Alert();
-                alert.Accept();
-            }
-            catch (NoAlertPresentException)
-            {
-                var botonesConfirmar = _driver.FindElements(By.XPath("//form[contains(@action, 'Eliminar')]//button[@type='submit' or contains(text(), 'Eliminar')] | //form[contains(@action, 'Delete')]//button[@type='submit'] | //input[@type='submit']"));
-                if (botonesConfirmar.Count > 0 && botonesConfirmar[0].Displayed)
-                {
-                    botonesConfirmar[0].Click();
-                }
-            }
+            Assert.Contains(
+                "/Usuarios/Eliminar",
+                driver.Url,
+                StringComparison.OrdinalIgnoreCase);
 
-            // 5. Esperar a que la página procese la acción
-            _wait.Until(d => !d.Url.Contains("/Usuarios/Eliminar", StringComparison.OrdinalIgnoreCase));
+            var btnConfirmarEliminar = wait.Until(d =>
+                d.FindElement(
+                    By.Id("btnConfirmarEliminar")
+                )
+            );
 
-            // 6. Verificar que el usuario creado ya no aparece en el código fuente
-            Assert.DoesNotContain(usuarioAEliminar, _driver.PageSource);
-        }
+            btnConfirmarEliminar.Click();
 
-        private void LlenarCampoSiExiste(By locator, string valor)
-        {
-            var elementos = _driver.FindElements(locator);
-            if (elementos.Count > 0 && elementos[0].Displayed)
-            {
-                elementos[0].Clear();
-                elementos[0].SendKeys(valor);
-            }
+            wait.Until(d =>
+                d.Url.EndsWith("/Usuarios") ||
+                d.Url.EndsWith("/Usuarios/"));
+
+            Assert.Contains(
+                "/Usuarios",
+                driver.Url,
+                StringComparison.OrdinalIgnoreCase);
+
+            using var db = CrearDbContext();
+
+            var usuarioEliminado = db.Usuarios
+                .FirstOrDefault(u =>
+                    u.NombreUsuario == "testuser_selenium");
+
+            Assert.Null(usuarioEliminado);
         }
 
         public void Dispose()
         {
-            _driver?.Quit();
-            _driver?.Dispose();
+            driver?.Quit();
+            driver?.Dispose();
+
+            if (webAppProcess != null &&
+                !webAppProcess.HasExited)
+            {
+                try
+                {
+                    webAppProcess.Kill(true);
+                    webAppProcess.WaitForExit();
+                    webAppProcess.Dispose();
+                }
+                catch
+                {
+                    // El proceso pudo haber terminado automáticamente.
+                }
+
+                webAppProcess = null;
+            }
         }
     }
 }

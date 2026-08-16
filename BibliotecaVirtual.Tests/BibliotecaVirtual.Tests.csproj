@@ -20,4 +20,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\BibliotecaVirtual.Web\BibliotecaVirtual.Web.csproj" />
+  </ItemGroup>
+
 </Project>
