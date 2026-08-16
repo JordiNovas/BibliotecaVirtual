@@ -3,61 +3,111 @@
 }
 
 <div class="container mt-5">
+
     <div class="row justify-content-center">
+
         <div class="col-md-5">
 
             <div class="card shadow">
-                <div class="card-body">
+
+                <div class="card-body p-4">
 
                     <h2 class="text-center mb-4">
-                        Biblioteca Virtual
+                        Iniciar sesión
                     </h2>
 
-                    <h5 class="text-center mb-4">
-                        Iniciar sesión
-                    </h5>
 
-                    @if (ViewBag.Error != null)
+                    @* ==========================================
+                       MENSAJES DE ERROR
+                       ========================================== *@
+
+                    @if (!ViewData.ModelState.IsValid)
                     {
                         <div class="alert alert-danger">
-                            @ViewBag.Error
+
+                            @Html.ValidationSummary(
+                                true,
+                                "",
+                                new { @class = "mb-0" })
+
                         </div>
                     }
 
-                    <form asp-action="Login" method="post">
+
+                    @* ==========================================
+                       FORMULARIO DE LOGIN
+                       ========================================== *@
+
+                    <form asp-controller="Cuenta"
+                          asp-action="Login"
+                          method="post">
+
+                        @Html.AntiForgeryToken()
+
+
+                        @* USUARIO *@
 
                         <div class="mb-3">
-                            <label class="form-label">
+
+                            <label for="nombreUsuario"
+                                   class="form-label">
+
                                 Nombre de usuario
+
                             </label>
 
                             <input type="text"
+                                   id="nombreUsuario"
                                    name="nombreUsuario"
                                    class="form-control"
-                                   required />
+                                   placeholder="Ingrese su usuario"
+                                   autocomplete="username" />
+
                         </div>
 
+
+                        @* CONTRASEÑA *@
+
                         <div class="mb-3">
-                            <label class="form-label">
+
+                            <label for="password"
+                                   class="form-label">
+
                                 Contraseña
+
                             </label>
 
                             <input type="password"
+                                   id="password"
                                    name="password"
                                    class="form-control"
-                                   required />
+                                   placeholder="Ingrese su contraseña"
+                                   autocomplete="current-password" />
+
                         </div>
 
-                        <button type="submit"
-                                class="btn btn-primary w-100">
-                            Iniciar sesión
-                        </button>
+
+                        @* BOTÓN *@
+
+                        <div class="d-grid">
+
+                            <button type="submit"
+                                    class="btn btn-primary">
+
+                                Iniciar sesión
+
+                            </button>
+
+                        </div>
 
                     </form>
 
                 </div>
+
             </div>
 
         </div>
+
     </div>
-</div> 
+
+</div>

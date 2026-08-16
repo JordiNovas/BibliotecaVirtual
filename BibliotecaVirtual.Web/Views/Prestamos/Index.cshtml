@@ -1,0 +1,136 @@
+@model IEnumerable<BibliotecaVirtual.Web.Models.Prestamo>
+
+@{
+    ViewData["Title"] = "Préstamos";
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Préstamos</h1>
+
+        <a asp-controller="Usuarios"
+           asp-action="Index"
+           class="btn btn-secondary">
+            Volver a usuarios
+        </a>
+    </div>
+
+    @if (TempData["Exito"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Exito"]
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["Error"]
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            Actualmente no existen préstamos registrados.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+
+            <table class="table table-bordered table-striped">
+
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuario</th>
+                        <th>Libro</th>
+                        <th>Fecha del préstamo</th>
+                        <th>Fecha de devolución</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @foreach (var prestamo in Model)
+                    {
+                        <tr>
+
+                            <td>
+                                @prestamo.Id
+                            </td>
+
+                            <td>
+                                @if (prestamo.Usuario != null)
+                                {
+                                    @prestamo.Usuario.Nombre
+                                    <br />
+                                    <small class="text-muted">
+                                        @prestamo.Usuario.NombreUsuario
+                                    </small>
+                                }
+                                else
+                                {
+                                    <span>Usuario no encontrado</span>
+                                }
+                            </td>
+
+                            <td>
+                                @if (prestamo.Libro != null)
+                                {
+                                    @prestamo.Libro.Titulo
+                                }
+                                else
+                                {
+                                    <span>Libro no encontrado</span>
+                                }
+                            </td>
+
+                            <td>
+                                @prestamo.FechaPrestamo.ToString(
+                                    "dd/MM/yyyy HH:mm")
+                            </td>
+
+                            <td>
+                                @if (prestamo.FechaDevolucion.HasValue)
+                                {
+                                    @prestamo.FechaDevolucion.Value.ToString(
+                                        "dd/MM/yyyy HH:mm")
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
+                            </td>
+
+                            <td>
+
+                                @if (prestamo.Estado == "Activo")
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        Prestado
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">
+                                        Devuelto
+                                    </span>
+                                }
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+    }
+
+</div>

@@ -22,11 +22,10 @@ namespace BibliotecaVirtual.Web.Models
         [Display(Name = "Nombre de usuario")]
         public string NombreUsuario { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "La contraseña es obligatoria.")]
-        [StringLength(100, MinimumLength = 6,
-            ErrorMessage = "La contraseña debe tener al menos 6 caracteres.")]
-        [Display(Name = "Contraseña")]
         public string PasswordHash { get; set; } = string.Empty;
+
+        [Display(Name = "Rol")]
+        public string Rol { get; set; } = "Usuario";
 
         [Display(Name = "Usuario activo")]
         public bool Activo { get; set; } = true;

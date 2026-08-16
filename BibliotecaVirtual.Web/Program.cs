@@ -6,53 +6,136 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DbContext y Servicios
+// ======================================================
+// MVC
+// ======================================================
+
+builder.Services.AddControllersWithViews();
+
+
+// ======================================================
+// BASE DE DATOS
+// ======================================================
+
 builder.Services.AddDbContext<BibliotecaContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString(
+            "DefaultConnection")));
 
-builder.Services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
 
-// Configuración de Autenticación por Cookies compatible con Selenium HTTP
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+// ======================================================
+// PASSWORD HASHER
+// ======================================================
+
+builder.Services.AddScoped<
+    IPasswordHasher<Usuario>,
+    PasswordHasher<Usuario>>();
+
+
+// ======================================================
+// AUTENTICACIÓN CON COOKIES
+// ======================================================
+
+builder.Services.AddAuthentication(
+    CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.Cookie.Name = "BibliotecaVirtual.Auth";
+        // Página a la que irá el usuario
+        // cuando no haya iniciado sesión.
         options.LoginPath = "/Cuenta/Login";
+
+        // Página a la que irá si no tiene permisos.
         options.AccessDeniedPath = "/Cuenta/Login";
+
+        // Nombre de la cookie.
+        options.Cookie.Name = "BibliotecaVirtual.Auth";
+
+        // Evita problemas con cookies.
         options.Cookie.HttpOnly = true;
-        
-        // Permite cookies en HTTP no seguro (entorno local / tests)
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+
+        // Seguridad de la cookie.
+        options.Cookie.SecurePolicy =
+            CookieSecurePolicy.SameAsRequest;
+
+        // Tiempo de duración de la sesión.
+        options.ExpireTimeSpan =
+            TimeSpan.FromHours(2);
+
+        // Renovar automáticamente la cookie
+        // mientras el usuario siga activo.
+        options.SlidingExpiration = true;
     });
 
-// Configuración de Antiforgery para Selenium HTTP
-builder.Services.AddAntiforgery(options =>
-{
-    options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None;
-});
 
-builder.Services.AddControllersWithViews(options =>
-{
-    // Opcional: si la app no usa SSL en tests
-});
+// ======================================================
+// AUTORIZACIÓN
+// ======================================================
+
+builder.Services.AddAuthorization();
+
 
 var app = builder.Build();
+
+
+// ======================================================
+// CONFIGURACIÓN DEL PIPELINE
+// ======================================================
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
+
+    app.UseHsts();
 }
 
+
+// ======================================================
+// HTTPS
+// ======================================================
+
+app.UseHttpsRedirection();
+
+
+// ======================================================
+// ARCHIVOS ESTÁTICOS
+// ======================================================
+
 app.UseStaticFiles();
+
+
+// ======================================================
+// ROUTING
+// ======================================================
+
 app.UseRouting();
 
+
+// ======================================================
+// AUTENTICACIÓN
+// IMPORTANTE: debe ir ANTES de Authorization
+// ======================================================
+
 app.UseAuthentication();
+
+
+// ======================================================
+// AUTORIZACIÓN
+// ======================================================
+
 app.UseAuthorization();
+
+
+// ======================================================
+// RUTA PRINCIPAL
+// ======================================================
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Cuenta}/{action=Login}/{id?}");
+
+
+// ======================================================
+// EJECUTAR APLICACIÓN
+// ======================================================
 
 app.Run();
