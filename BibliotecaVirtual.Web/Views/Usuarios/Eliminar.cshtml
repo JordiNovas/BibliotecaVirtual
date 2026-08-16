@@ -48,7 +48,7 @@
 
     </div>
 
-    <form asp-action="Eliminar"
+    <form asp-action="EliminarConfirmado"
           method="post">
 
         <input type="hidden"
@@ -57,6 +57,7 @@
         @Html.AntiForgeryToken()
 
         <button type="submit"
+                id="btnConfirmarEliminar"
                 class="btn btn-danger">
             Sí, eliminar
         </button>

@@ -17,39 +17,38 @@
 
         <div class="mb-3">
             <label asp-for="Nombre" class="form-label"></label>
-            <input asp-for="Nombre" class="form-control" />
+            <input asp-for="Nombre" id="Nombre" name="Nombre" class="form-control" />
             <span asp-validation-for="Nombre" class="text-danger"></span>
         </div>
 
         <div class="mb-3">
             <label asp-for="Correo" class="form-label"></label>
-            <input asp-for="Correo" type="email" class="form-control" />
+            <input asp-for="Correo" id="Correo" name="Correo" type="email" class="form-control" />
             <span asp-validation-for="Correo" class="text-danger"></span>
         </div>
 
         <div class="mb-3">
             <label asp-for="NombreUsuario" class="form-label"></label>
-            <input asp-for="NombreUsuario" class="form-control" />
+            <input asp-for="NombreUsuario" id="NombreUsuario" name="NombreUsuario" class="form-control" />
             <span asp-validation-for="NombreUsuario" class="text-danger"></span>
         </div>
 
         <div class="mb-3">
             <label asp-for="PasswordHash" class="form-label">Contraseña</label>
-            <input asp-for="PasswordHash" type="password" class="form-control" />
+            <input asp-for="PasswordHash" id="PasswordHash" name="PasswordHash" type="password" class="form-control" />
             <span asp-validation-for="PasswordHash" class="text-danger"></span>
         </div>
 
-        <!-- Si el modelo Usuario requiere un Rol, asegúrate de tener este campo -->
         <div class="mb-3">
             <label class="form-label">Rol</label>
-            <select name="Rol" class="form-select">
+            <select name="Rol" id="Rol" class="form-select">
                 <option value="Usuario">Usuario</option>
                 <option value="Admin">Administrador</option>
             </select>
         </div>
 
         <div class="form-check mb-3">
-            <input asp-for="Activo" class="form-check-input" />
+            <input asp-for="Activo" id="Activo" name="Activo" class="form-check-input" />
             <label asp-for="Activo" class="form-check-label">Usuario activo</label>
         </div>
 

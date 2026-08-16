@@ -1,88 +1,59 @@
 @model BibliotecaVirtual.Web.Models.Usuario
 
 @{
-    ViewData["Title"] = "Editar usuario";
+    ViewData["Title"] = "Editar Usuario";
 }
 
-<div class="container mt-4">
+<div class="container mt-4" style="max-width: 600px;">
 
-    <h1>Editar usuario</h1>
+    <h2>✏️ Editar Usuario</h2>
 
     <hr />
 
     <form asp-action="Editar" method="post">
 
-        <input type="hidden" asp-for="Id" />
-
-        <div asp-validation-summary="ModelOnly"
-             class="alert alert-danger">
-        </div>
+        <input type="hidden"
+               asp-for="Id" />
 
         <div class="mb-3">
-            <label asp-for="Nombre"
+
+            <label for="Nombre"
                    class="form-label">
+                Nombre
             </label>
 
             <input asp-for="Nombre"
-                   class="form-control" />
+                   id="Nombre"
+                   class="form-control"
+                   required />
 
             <span asp-validation-for="Nombre"
                   class="text-danger">
             </span>
+
         </div>
 
-        <div class="mb-3">
-            <label asp-for="Correo"
-                   class="form-label">
-            </label>
+        <div class="d-flex gap-2">
 
-            <input asp-for="Correo"
-                   type="email"
-                   class="form-control" />
+            <button type="submit"
+                    id="btnGuardar"
+                    class="btn btn-primary">
+                Guardar Cambios
+            </button>
 
-            <span asp-validation-for="Correo"
-                  class="text-danger">
-            </span>
+            <a asp-action="Index"
+               class="btn btn-secondary">
+                Cancelar
+            </a>
+
         </div>
-
-        <div class="mb-3">
-            <label asp-for="NombreUsuario"
-                   class="form-label">
-            </label>
-
-            <input asp-for="NombreUsuario"
-                   class="form-control" />
-
-            <span asp-validation-for="NombreUsuario"
-                  class="text-danger">
-            </span>
-        </div>
-
-        <div class="form-check mb-3">
-            <input asp-for="Activo"
-                   class="form-check-input" />
-
-            <label asp-for="Activo"
-                   class="form-check-label">
-                Usuario activo
-            </label>
-        </div>
-
-        <button type="submit"
-                class="btn btn-primary">
-            Guardar cambios
-        </button>
-
-        <a asp-action="Index"
-           class="btn btn-secondary">
-            Cancelar
-        </a>
 
     </form>
 
 </div>
 
-@section Scripts {
+@section Scripts
+{
     @{
         await Html.RenderPartialAsync(
             "_ValidationScriptsPartial");
